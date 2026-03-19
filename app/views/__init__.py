@@ -1,4 +1,5 @@
 from .admin import *
+from .api import check_excel
 from .auth import *
 from .calculate import *
 from .custom import *
