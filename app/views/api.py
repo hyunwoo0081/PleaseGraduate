@@ -4,6 +4,7 @@ POST /api/v1/graduation/check-excel
 """
 import uuid
 import datetime
+import traceback
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -196,8 +197,8 @@ def check_excel(request):
         # ── 6. 졸업요건 계산 ──────────────────────────────────────────────
         try:
             result_context = f_result(temp_id)
-        except Exception as exc:
-            return _error('INTERNAL_ERROR', f'졸업요건 계산 중 오류가 발생했습니다: {exc}', 500)
+        except Exception:
+            return _error('INTERNAL_ERROR', f'졸업요건 계산 중 오류가 발생했습니다: {traceback.format_exc()}', 500)
 
         # 공학인증 결과 (Standard에 pro 필드가 있을 경우에만)
         en_result_context = None

@@ -154,7 +154,7 @@ def f_result(user_id):
         b_exists = 1 
     if ui_row.major_status != '해당없음':
         multi_exists = 1 
-    if json.loads(standard_row.english):
+    if standard_row.english:
         english_exists = 1
     context_exists = {
         'ce' : ce_exists,

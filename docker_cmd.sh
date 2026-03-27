@@ -1,4 +1,4 @@
-###!/bin/bash
+#!/bin/bash
 
 # 도커 컨테이너 내부에서 실행될 스크립트
 
@@ -6,7 +6,7 @@ PROFILE=$1
 
 service cron start
 
-if [ $PROFILE == "dev" ]; then
+if [ "$PROFILE" == "dev" ]; then
     python manage.py crontab add --settings=project.settings.dev
     cd /srv/PleaseGraduate/dev/
     uwsgi --ini uwsgi.ini
