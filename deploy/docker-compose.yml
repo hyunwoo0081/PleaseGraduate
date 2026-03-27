@@ -7,5 +7,6 @@ services:
     environment:
       TZ: "Asia/Seoul"
     volumes:
-      - ./:/srv/PleaseGraduate/deploy # 실행 후 외부에 PG.sock 생성
+      - ./:/srv/PleaseGraduate/deploy
+      - ../db.sqlite3:/srv/PleaseGraduate/db.sqlite3  # SQLite DB 영구 저장
     command: bash docker_cmd.sh prod
