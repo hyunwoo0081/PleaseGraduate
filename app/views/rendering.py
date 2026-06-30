@@ -13,18 +13,11 @@ from ..models import *
 # ---------------------------------------------------- ( 렌더링 함수 ) ----------------------------------------------------------------
 
 def r_head(request):
-    # 오늘 날자의 누적 방문자수를 추출
-    today_date = datetime.datetime.now().strftime('%Y-%m-%d')
-    today_queryset = VisitorCount.objects.get(visit_date = today_date)
-    visit_today = today_queryset.visit_count
-    # 모든 날짜의 방문자수 총합을 구함 (aggregate는 딕셔너리 형태로 반환)
-    sum_dict = VisitorCount.objects.aggregate(Sum('visit_count'))
-    visit_total = sum_dict['visit_count__sum']
     # user_info 회원수 + new_user_info 회원수 합계
     user_num = NewUserInfo.objects.count()
     context = {
-        'visit_today' : addComma(visit_today),
-        'visit_total' : addComma(visit_total),
+        'visit_today' : 0,
+        'visit_total' : 0,
         'user_num' : addComma(user_num)
     }
     return render(request, "head.html", context)
@@ -40,39 +33,11 @@ def r_statistics(request):
         'user_num' : user_num,
         'major_num' : major_num,
     }
-    response = render(request, "statistics.html", context)
-    # 쿠키 추가로 설정
-    if request.COOKIES.get('is_visit') is None:
-        now_dt = datetime.datetime.now()
-        tommorow_dt = now_dt + datetime.timedelta(days=1)
-        tommorow_midnight_str = tommorow_dt.strftime('%Y-%m-%d') + ' 00:00:00'
-        tommorow_midnight_time = datetime.datetime.strptime(tommorow_midnight_str, '%Y-%m-%d %H:%M:%S')
-        diff_dt = (tommorow_midnight_time - now_dt).seconds
-        response.set_cookie('is_visit', 'visited', diff_dt)
-        today_date = now_dt.strftime('%Y-%m-%d')
-        vc = VisitorCount.objects.get(visit_date=today_date)
-        vc.visit_count += 1
-        vc.save()
-    return response
+    return render(request, "statistics.html", context)
 
 def r_login(request):
     request.session.clear()
-    response = render(request, "login.html")
-    # 해당 사용자의 브라우저가 첫 방문일 경우 +1
-    if request.COOKIES.get('is_visit') is None:
-        # 쿠키 수명은 날짜가 바뀔 때까지 설정
-        now_dt = datetime.datetime.now()
-        tommorow_dt = now_dt + datetime.timedelta(days=1)
-        tommorow_midnight_str = tommorow_dt.strftime('%Y-%m-%d') + ' 00:00:00'
-        tommorow_midnight_time = datetime.datetime.strptime(tommorow_midnight_str, '%Y-%m-%d %H:%M:%S')
-        diff_dt = (tommorow_midnight_time - now_dt).seconds
-        response.set_cookie('is_visit', 'visited', diff_dt)
-        # 오늘 날짜의 방문자수를 +1
-        today_date = now_dt.strftime('%Y-%m-%d')
-        vc = VisitorCount.objects.get(visit_date=today_date)
-        vc.visit_count += 1
-        vc.save()
-    return response
+    return render(request, "login.html")
 
 def r_agree(request):
     target_qeuryset = Standard.objects.only('user_year', 'user_dep')
