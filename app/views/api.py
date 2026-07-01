@@ -137,6 +137,8 @@ def check_excel(request):
 
     try:
         year = int(year_str)
+        if year < 100:
+            year += 2000
     except ValueError:
         return _error('VALIDATION_ERROR', 'year는 정수여야 합니다.', 422)
 
