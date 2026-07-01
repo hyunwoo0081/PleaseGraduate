@@ -207,3 +207,4 @@
 
 - **[로컬 실행 및 마이그레이션 가이드 (RUN_GUIDE.md)](RUN_GUIDE.md)**: Docker Compose 기반 로컬 개발 환경 실행, 마이그레이션 및 API 테스트 방법 안내
 - **[GCP 배포 가이드 (GCP_DEPLOY_GUIDE.md)](GCP_DEPLOY_GUIDE.md)**: GCP Compute Engine(VM) 환경 설정, GitHub Secrets 세팅 및 GitHub Actions 기반 CI/CD 배포 가이드
+- **[Render 배포 가이드 (RENDER_DEPLOY_GUIDE.md)](RENDER_DEPLOY_GUIDE.md)**: Render Web Service 환경 설정, 무료 플랜 대응(SQLite 휘발성 극복) 및 대외비 엑셀 데이터의 Secret Files 보안 연동 가이드
