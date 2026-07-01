@@ -88,3 +88,24 @@ Render의 무료 플랜은 서버가 일정 시간 유휴 상태가 되면 꺼�
      -F "excel=@your_grade_excel.xlsx" \
      https://<your-service-name>.onrender.com/api/v1/graduation/check-excel/
    ```
+
+---
+
+## 5. (선택사항) 기존 GCP DB 파일 전체 백업 및 복원하기
+
+만약 기존 GCP 운영 서버의 데이터를 100% 동일하게 되살리고 싶다면, 엑셀을 통해 테이블을 직접 만드는 대신 **기존 GCP VM에 생성되어 있는 `db.sqlite3` 파일을 복사해 가져오는 것**이 가장 간편하고 완벽합니다.
+
+### 복원 방법:
+1. **GCP VM에서 DB 파일 내려받기**:
+   GCP VM 서버에 접속하여 `/srv/PleaseGraduate/db.sqlite3` (혹은 마운트해 사용 중인 호스트 경로의 `db.sqlite3`) 파일을 로컬 PC로 다운로드합니다.
+2. **바이너리 파일을 Base64 평문으로 변환**:
+   로컬 PC 터미널에서 다운로드한 `db.sqlite3` 파일이 있는 경로로 이동한 뒤, 아래 명령어를 실행해 Base64 텍스트로 인코딩합니다.
+   ```bash
+   python -c "import base64; open('db_sqlite3_base64.txt', 'wb').write(base64.b64encode(open('db.sqlite3', 'rb').read()))"
+   ```
+3. **Render Secret File 등록**:
+   Render 대시보드 **Environment** > **Secret Files**에 인코딩된 `db_sqlite3_base64.txt` 파일을 등록합니다:
+   * **Filename**: `db_sqlite3_base64.txt`
+
+이 설정을 마치고 배포하면, 서버가 켜질 때 `docker_cmd.sh`가 해당 백업본을 인메모리 디코딩하여 `/srv/PleaseGraduate/db.sqlite3` 파일로 완벽히 복원합니다. 이 경우 엑셀 파싱 단계를 건너뛰고 모든 데이터(전체 강의 목록, 대체 과목 목록 등)가 한 번에 복구됩니다.
+

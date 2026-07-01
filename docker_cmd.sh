@@ -9,13 +9,21 @@ if [ -n "$PORT" ]; then
     echo "Running on Render/Cloud platform with PORT=$PORT"
     export DJANGO_SETTINGS_MODULE=project.settings.prod
     
-    # 데이터베이스 마이그레이션 및 테이블 생성 스크립트 실행
-    echo "Running database migrations..."
-    python manage.py migrate --noinput
-    echo "Running setup_database.py..."
-    python setup_database.py
-    echo "Running import_excel_data.py..."
-    python import_excel_data.py
+    # Render Secret Files에 백업된 전체 db.sqlite3 데이터베이스가 존재하는지 확인
+    if [ -f "/etc/secrets/db_sqlite3_base64.txt" ]; then
+        echo "Found db_sqlite3_base64.txt. Restoring full database..."
+        python -c "import base64; open('db.sqlite3', 'wb').write(base64.b64decode(open('/etc/secrets/db_sqlite3_base64.txt', 'r').read().strip()))"
+        echo "Database restored successfully."
+    else
+        echo "db_sqlite3_base64.txt not found. Falling back to migration and Excel import..."
+        # 데이터베이스 마이그레이션 및 테이블 생성 스크립트 실행
+        echo "Running database migrations..."
+        python manage.py migrate --noinput
+        echo "Running setup_database.py..."
+        python setup_database.py
+        echo "Running import_excel_data.py..."
+        python import_excel_data.py
+    fi
     
     uwsgi --http :$PORT --module project.wsgi:application --master --processes 4 --threads 2 --buffer-size 65535
 elif [ "$PROFILE" == "dev" ]; then

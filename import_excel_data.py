@@ -21,6 +21,34 @@ SINGLE_FILE_CANDIDATES = [
     "./database_data.xlsx"
 ]
 
+# standard 시트 컬럼 한글 -> 영문 매핑
+STANDARD_MAP = {
+    '학번': 'user_year',
+    '학과': 'user_dep',
+    '총 필요학점': 'sum_score',
+    '전필': 'major_essential',
+    '전선': 'major_selection',
+    '공필(교필)': 'core_essential',
+    '교선': 'core_selection',
+    '균필': 'la_balance',
+    '기필(기교)': 'basic',
+    '공필(교필) 필수과목': 'ce_list',
+    '교선 필수과목': 'cs_list',
+    '기필(기교) 필수과목': 'b_list',
+    '영어 조건': 'english'
+}
+
+# major 시트 컬럼 한글 -> 영문 매핑
+MAJOR_MAP = {
+    '단과대': 'college',
+    '단과대학': 'college',
+    '대학': 'college',
+    '전공': 'major',
+    '학과': 'major',
+    '학부': 'department',
+    '부서': 'department'
+}
+
 def load_database_excel():
     # 1. Render Secret File (Base64 평문 텍스트) 존재 여부 확인
     secret_path = "/etc/secrets/database_data_base64.txt"
@@ -90,7 +118,7 @@ def get_fallback_excel_df(name, local_dir):
 
 def update_standard(excel_file, is_single):
     if is_single:
-        df = get_sheet_df(excel_file, ["standard", "기준"])
+        df = get_sheet_df(excel_file, ["standard", "기준", "졸업 요건", "졸업요건"])
     else:
         df = get_fallback_excel_df("standard", './dev/update_table/standard/')
 
@@ -101,40 +129,56 @@ def update_standard(excel_file, is_single):
     df.fillna(0, inplace=True)
     Standard.objects.all().delete()
     
+    # 한글 컬럼명을 영문 컬럼명으로 변경 매핑
+    rename_dict = {}
+    for col in df.columns:
+        clean_col = str(col).strip()
+        if clean_col in STANDARD_MAP:
+            rename_dict[col] = STANDARD_MAP[clean_col]
+    df.rename(columns=rename_dict, inplace=True)
+    
     for i, row in df.iterrows():
         new_st = Standard()
         new_st.index = i
-        new_st.user_year = row['user_year']
-        new_st.user_dep = row['user_dep']
-        new_st.sum_score = int(row['sum_score'])
-        new_st.major_essential = int(row['major_essential'])
-        new_st.major_selection = int(row['major_selection'])
-        new_st.core_essential = int(row['core_essential'])
-        new_st.core_selection = int(row['core_selection'])
-        new_st.la_balance = int(row['la_balance'])
-        new_st.basic = int(row['basic'])
-        new_st.ce_list = str(row['ce_list'])
-        new_st.cs_list = str(row['cs_list'])
-        new_st.b_list = str(row['b_list'])
-        new_st.english = json.dumps(eval(str(row['english'])))
-        new_st.sum_eng = int(row['sum_eng'])
-        new_st.pro = int(row['pro'])
-        new_st.bsm = int(row['bsm'])
-        new_st.eng_major = int(row['eng_major'])
-        new_st.build_sel_num = int(row['build_sel_num'])
-        new_st.pro_ess_list = str(row['pro_ess_list'])
-        new_st.bsm_ess_list = str(row['bsm_ess_list'])
-        new_st.bsm_sel_list = str(row['bsm_sel_list'])
-        new_st.build_start = str(int(row['build_start']))
-        new_st.build_sel_list = str(row['build_sel_list'])
-        new_st.build_end = str(int(row['build_end']))
-        new_st.eng_major_list = str(row['eng_major_list'])
+        new_st.user_year = int(row.get('user_year', 2019))
+        new_st.user_dep = str(row.get('user_dep', ''))
+        new_st.sum_score = int(row.get('sum_score', 130))
+        new_st.major_essential = int(row.get('major_essential', 0))
+        new_st.major_selection = int(row.get('major_selection', 0))
+        new_st.core_essential = int(row.get('core_essential', 0))
+        new_st.core_selection = int(row.get('core_selection', 0))
+        new_st.la_balance = int(row.get('la_balance', 0))
+        new_st.basic = int(row.get('basic', 0))
+        new_st.ce_list = str(row.get('ce_list', '[]')).strip()
+        new_st.cs_list = str(row.get('cs_list', '[]')).strip()
+        new_st.b_list = str(row.get('b_list', '[]')).strip()
+        
+        # 영어 조건 딕셔너리 안전 파싱
+        eng_val = str(row.get('english', '{}')).strip()
+        try:
+            new_st.english = json.dumps(eval(eng_val))
+        except Exception:
+            new_st.english = '{}'
+            
+        # 기타 존재하지 않는 필드는 기본값으로 세팅 (KeyError 방지)
+        new_st.sum_eng = int(row.get('sum_eng', 1))
+        new_st.pro = int(row.get('pro', 0))
+        new_st.bsm = int(row.get('bsm', 0))
+        new_st.eng_major = int(row.get('eng_major', 0))
+        new_st.build_sel_num = int(row.get('build_sel_num', 0))
+        new_st.pro_ess_list = str(row.get('pro_ess_list', '[]'))
+        new_st.bsm_ess_list = str(row.get('bsm_ess_list', '[]'))
+        new_st.bsm_sel_list = str(row.get('bsm_sel_list', '[]'))
+        new_st.build_start = str(int(row.get('build_start', 0)))
+        new_st.build_sel_list = str(row.get('build_sel_list', '[]'))
+        new_st.build_end = str(int(row.get('build_end', 0)))
+        new_st.eng_major_list = str(row.get('eng_major_list', '[]'))
         new_st.save()
     print("[+] Standard imported successfully.")
 
 def update_major(excel_file, is_single):
     if is_single:
-        df = get_sheet_df(excel_file, ["major", "전공"])
+        df = get_sheet_df(excel_file, ["major", "전공", "학과", "학과 계층 구조", "학과계층구조"])
     else:
         df = get_fallback_excel_df("major", './dev/update_table/major/')
 
@@ -145,11 +189,19 @@ def update_major(excel_file, is_single):
     df.fillna('', inplace=True)
     Major.objects.all().delete()
     
+    # 한글 컬럼명을 영문 컬럼명으로 변경 매핑
+    rename_dict = {}
+    for col in df.columns:
+        clean_col = str(col).strip()
+        if clean_col in MAJOR_MAP:
+            rename_dict[col] = MAJOR_MAP[clean_col]
+    df.rename(columns=rename_dict, inplace=True)
+    
     for i, row in df.iterrows():
         new_m = Major()
-        new_m.college = row['college']
-        new_m.major = row['major']
-        new_m.department = row['department']
+        new_m.college = str(row.get('college', ''))
+        new_m.major = str(row.get('major', ''))
+        new_m.department = str(row.get('department', ''))
         new_m.save()
     print("[+] Major imported successfully.")
 
