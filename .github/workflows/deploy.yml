@@ -1,76 +1,51 @@
-name: Deploy to Oracle
-
-# on:
-#   push:
-#     branches: [ main ]
+name: Deploy to GCP
 
 on: workflow_dispatch
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.9]
-
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.9
 
     # .env 파일 생성
     - name: Create .env file
       uses: SpicyPizza/create-envfile@v1
       with:
         envkey_SECRET_KEY: ${{ secrets.SECRET_KEY }}
-        envkey_DB_NAME: ${{ secrets.DB_NAME }}
-        envkey_DB_USER: ${{ secrets.DB_USER }}
-        envkey_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        envkey_DB_HOST: ${{ secrets.DB_HOST }}
-        envkey_SLACK_WEBHOOK_URL_ALARM : ${{ secrets.SLACK_WEBHOOK_URL_ALARM }}
+        envkey_DEBUG: "False"
         file_name: .env
 
-    # 장고 docker 이미지 빌드
+    # 도커 이미지 빌드 및 푸시
     - name: Docker build and push
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
         docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPOSITORY }}:${{ secrets.DOCKER_TAG }} .
         docker push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPOSITORY }}:${{ secrets.DOCKER_TAG }}
 
-    # 라이브러리 설치
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    # deploy 폴더에 static 파일 모아주기
-    - name: Collect static files to deploy
-      run: |
-         python manage.py collectstatic --settings=project.settings.prod
-    
-    # OCI로 배포 스크립트 전송
-    - name: Send scripts to OCI
+    # GCP로 필수 파일 전송 (deploy 폴더, DB 초기화 스크립트, 엑셀 데이터)
+    - name: Send files to GCP
       uses: appleboy/scp-action@master
       with:
-        host: ${{ secrets.OCI_INSTANCE_HOST }}
-        username: ${{ secrets.OCI_INSTANCE_USERNAME }}
-        key: ${{ secrets.OCI_INSTANCE_PRIVATE_KEY }}
-        port: ${{ secrets.OCI_INSTANCE_PORT }}
-        source: "./deploy/*"
+        host: ${{ secrets.GCP_INSTANCE_HOST }}
+        username: ${{ secrets.GCP_INSTANCE_USERNAME }}
+        key: ${{ secrets.GCP_INSTANCE_PRIVATE_KEY }}
+        port: 22
+        source: "./deploy/*,./setup_database.py,./test_data/database_data.xlsx"
         target: "/srv"
 
-    # OCI에서 배포 스크립트 실행
-    - name: Deploy to OCI
+    # GCP에서 배포 스크립트 실행 및 DB 초기화
+    - name: Deploy to GCP
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.OCI_INSTANCE_HOST }}
-        username: ${{ secrets.OCI_INSTANCE_USERNAME }}
-        key: ${{ secrets.OCI_INSTANCE_PRIVATE_KEY }}
-        port: ${{ secrets.OCI_INSTANCE_PORT }}
+        host: ${{ secrets.GCP_INSTANCE_HOST }}
+        username: ${{ secrets.GCP_INSTANCE_USERNAME }}
+        key: ${{ secrets.GCP_INSTANCE_PRIVATE_KEY }}
         script: |
           cd /srv/deploy
           bash deploy.sh \
@@ -78,3 +53,6 @@ jobs:
           ${{ secrets.DOCKER_PASSWORD }} \
           ${{ secrets.DOCKER_REPOSITORY }} \
           ${{ secrets.DOCKER_TAG }}
+          
+          # 컨테이너 실행 후 데이터베이스 테이블 생성 및 엑셀 데이터 주입
+          docker-compose exec -T django python /srv/PleaseGraduate/setup_database.py

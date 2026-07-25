@@ -154,7 +154,7 @@ def f_result(user_id):
         b_exists = 1 
     if ui_row.major_status != '해당없음':
         multi_exists = 1 
-    if json.loads(standard_row.english):
+    if standard_row.english:
         english_exists = 1
     context_exists = {
         'ce' : ce_exists,
@@ -518,7 +518,7 @@ def f_result(user_id):
     ################################################
     if english_exists:
         # 영어합격기준 (영문과만 예외처리)
-        eng_standard = json.loads(standard_row.english)
+        eng_standard = standard_row.english if isinstance(standard_row.english, dict) else json.loads(standard_row.english)
         # 영어 인증 여부
         eng_pass, eng_score = 0, 0
         eng_category = ui_row.eng

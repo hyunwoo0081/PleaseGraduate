@@ -25,6 +25,8 @@
     <p>총 <b>387개</b>의 검사 기준으로, <b>62개</b>의 모든 학과/전공 및 8개 학번(15~22)의 검사를 지원합니다.</p>
     <p>재학생 인증을 통해 회원가입이 가능하고, 기이수성적 엑셀파일만 업로드하면 자동으로 검사합니다.</p>
     <p>검사 결과에선 자신이 부족한 부분을 시각화해주고, 자신과 비슷한 사용자들이 많이 들었던 과목을 추천합니다.</p>
+    <br>
+    <p>💡 <b>추가 기능:</b> 무인증 <b>REST API</b>를 통해 기이수성적 엑셀 파일만으로 졸업요건을 즉시 판정할 수 있는 API 서버 기능을 함께 제공합니다.</p>
 </div>
 
 <br>
@@ -154,6 +156,18 @@
 
 <br>
 
+<details>
+<summary><b>졸업요건 판정 REST API</b></summary>
+<br>
+
+- 별도의 사용자 회원가입이나 세션 로그인 없이, 기이수성적 엑셀(.xlsx) 파일과 학생 정보를 `multipart/form-data`로 전송하여 졸업요건 판정 결과를 JSON 형태로 즉시 반환받을 수 있습니다.
+- 사내 타 서비스 연동이나 외부 프론트엔드 환경에서 독립적으로 졸업요건을 검사하고 싶을 때 유용하게 활용할 수 있습니다.
+- 자세한 파라미터 및 응답 규격은 **[API 명세서(docs/api.md)](docs/api.md)**를 참고해 주세요.
+
+</details>
+
+<br>
+
 ## 📜 기술 스택
 
 ### Front & Backend
@@ -167,7 +181,6 @@
 - Pandas, django-pandas
 - bcrypt
 - openpyxl
-- django-crontab
 
 ### Infrastructure
 - Github Actions
@@ -185,6 +198,13 @@
 - Github Actions를 사용하여 CI/CD 파이프라인을 구축하였습니다.
 - Nginx를 사용하여 리다이렉트 및 HTTPS + HTTP/2.0을 지원하고, 정적 파일을 제공합니다. 
 - 프론트엔드는 Django Template Engine을 사용해 SSR 방식으로 렌더링합니다.
-- 일일 방문자수 구현을 위해 django-crontab을 사용합니다.
     
 <br>
+
+## 🚀 실행 및 배포 가이드
+
+프로젝트 실행 및 배포에 대한 자세한 안내는 아래 가이드 문서를 참고해 주세요.
+
+- **[로컬 실행 및 마이그레이션 가이드 (RUN_GUIDE.md)](RUN_GUIDE.md)**: Docker Compose 기반 로컬 개발 환경 실행, 마이그레이션 및 API 테스트 방법 안내
+- **[GCP 배포 가이드 (GCP_DEPLOY_GUIDE.md)](GCP_DEPLOY_GUIDE.md)**: GCP Compute Engine(VM) 환경 설정, GitHub Secrets 세팅 및 GitHub Actions 기반 CI/CD 배포 가이드
+- **[Render 배포 가이드 (RENDER_DEPLOY_GUIDE.md)](RENDER_DEPLOY_GUIDE.md)**: Render Web Service 환경 설정, 무료 플랜 대응(SQLite 휘발성 극복) 및 대외비 엑셀 데이터의 Secret Files 보안 연동 가이드

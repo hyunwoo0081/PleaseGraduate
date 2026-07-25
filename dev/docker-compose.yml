@@ -4,6 +4,8 @@ services:
   django:
     build: ../
     container_name: django_con
+    env_file:
+      - ../.env
     environment:
       TZ: "Asia/Seoul"
     ports: 

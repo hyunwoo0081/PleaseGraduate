@@ -1,0 +1,120 @@
+# PleaseGraduate 실행 가이드
+
+이 프로젝트는 Docker 환경에서 Django와 uWSGI를 기반으로 실행됩니다. 환경에 따라 아래 순서대로 설정을 진행해 주세요.
+
+---
+
+## 1. 공통 준비 사항
+
+### 환경 변수 설정 (`.env`)
+프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래 내용을 입력합니다. (파일 경로: `./.env`)
+
+```env
+# Django 설정
+SECRET_KEY=your_secret_key_here
+DEBUG=True
+
+# Database 설정 (MySQL 사용 시 필수)
+DB_NAME=pleasegraduate
+DB_USER=root
+DB_PASSWORD=your_password
+DB_HOST=db  # Docker Compose 내부 서비스 이름 또는 호스트 IP
+```
+
+---
+
+## 2. 개발 환경 (Development)
+로컬에서 코드를 수정하며 테스트하는 환경입니다. 호스트와 컨테이너 간의 볼륨이 동기화됩니다.
+
+### 실행 순서
+1. **컨테이너 빌드 및 실행**
+   ```powershell
+   docker-compose -f dev/docker-compose.yml up -d --build
+   ```
+
+2. **데이터베이스 테이블 생성 (최초 1회)**
+   - Django 기본 테이블 생성:
+     ```powershell
+     docker-compose -f dev/docker-compose.yml exec django python manage.py migrate --settings=project.settings.dev
+     ```
+   - `managed = False` 모델용 테이블 및 기초 데이터 생성 (사용자 커스텀 스크립트):
+     ```powershell
+     docker-compose -f dev/docker-compose.yml exec django python setup_database.py
+     ```
+
+3. **서버 접속**
+   - 주소: `http://localhost:8000`
+
+---
+
+## 3. 배포 환경 (Production)
+실제 서버에 배포하기 위한 환경입니다. 정적 파일 및 uWSGI 소켓 설정을 포함합니다.
+
+### 실행 순서
+1. **환경 변수 체크**
+   배포 환경용 `docker-compose.yml`은 Docker 이미지 정보가 필요합니다. 터미널에 환경 변수가 설정되어 있어야 합니다.
+   ```powershell
+   $env:DOCKER_USERNAME="username"
+   $env:DOCKER_REPOSITORY="repo"
+   $env:DOCKER_TAG="latest"
+   ```
+
+2. **컨테이너 실행**
+   ```powershell
+   docker-compose -f deploy/docker-compose.yml up -d
+   ```
+
+3. **정적 파일 모으기 (최초 1회)**
+   ```powershell
+   docker-compose -f deploy/docker-compose.yml exec django python manage.py collectstatic --settings=project.settings.prod --noinput
+   ```
+
+---
+
+## 4. API 테스트 방법
+서버가 정상적으로 띄워졌다면 아래 명령어로 졸업 요건 판정 API를 테스트할 수 있습니다.
+
+```powershell
+curl -X POST http://localhost:8000/api/v1/graduation/check-excel/ `
+  -F "student_id=19011094" `
+  -F "major=컴퓨터공학과" `
+  -F "year=2019" `
+  -F "excel=@test_data/기이수성적조회_20260327.xlsx"
+```
+
+---
+
+## 6. 데이터베이스 마이그레이션 가이드
+
+이 프로젝트는 `managed = False` 속성을 가진 모델이 많으므로, 일반적인 Django 마이그레이션과 커스텀 스크립트 실행이 모두 필요합니다.
+
+### 6.1 새로운 변경 사항 반영 (makemigrations)
+모델(`models.py`)을 수정한 후 마이그레이션 파일을 생성할 때 사용합니다.
+```powershell
+docker-compose -f dev/docker-compose.yml exec django python manage.py makemigrations app --settings=project.settings.dev
+```
+
+### 6.2 개발 환경 (dev) 마이그레이션
+```powershell
+# 1. Django 기본 테이블(auth, sessions 등) 마이그레이션
+docker-compose -f dev/docker-compose.yml exec django python manage.py migrate --settings=project.settings.dev
+
+# 2. managed = False 모델 테이블 생성 및 기초 데이터 주입
+docker-compose -f dev/docker-compose.yml exec django python setup_database.py
+```
+
+### 6.3 배포 환경 (prod) 마이그레이션
+운영 서버의 DB(MySQL 등)에 스키마를 반영할 때 사용합니다.
+```powershell
+# 1. Django 기본 테이블 마이그레이션
+docker-compose -f deploy/docker-compose.yml exec django python manage.py migrate --settings=project.settings.prod
+
+# 2. managed = False 모델 테이블 생성 (필요 시)
+docker-compose -f deploy/docker-compose.yml exec django python setup_database.py
+```
+
+### 6.4 DB 초기화가 필요한 경우 (SQLite 기준)
+테스트 중 DB가 꼬여서 초기화하고 싶을 때:
+1. `db.sqlite3` 파일을 삭제합니다.
+2. `app/migrations/` 폴더 내의 `__init__.py`를 제외한 마이그레이션 파일들을 삭제합니다.
+3. 위의 **6.2 개발 환경 마이그레이션** 순서를 다시 진행합니다.
