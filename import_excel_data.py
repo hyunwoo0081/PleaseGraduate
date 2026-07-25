@@ -2,6 +2,7 @@ import os
 import django
 import pandas as pd
 import json
+import ast
 import base64
 import io
 
@@ -156,9 +157,16 @@ def update_standard(excel_file, is_single):
         # 영어 조건 딕셔너리 안전 파싱
         eng_val = str(row.get('english', '{}')).strip()
         try:
-            new_st.english = json.dumps(eval(eng_val))
+            new_st.english = json.loads(eng_val)
+        except json.JSONDecodeError:
+            try:
+                new_st.english = ast.literal_eval(eng_val)
+                if not isinstance(new_st.english, dict):
+                    new_st.english = {}
+            except (ValueError, SyntaxError):
+                new_st.english = {}
         except Exception:
-            new_st.english = '{}'
+            new_st.english = {}
             
         # 기타 존재하지 않는 필드는 기본값으로 세팅 (KeyError 방지)
         new_st.sum_eng = int(row.get('sum_eng', 1))

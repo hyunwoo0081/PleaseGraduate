@@ -191,6 +191,8 @@ class CheckExcelAPITest(TestCase):
         )
         response = check_excel(request)
         self.assertEqual(response.status_code, 200)
+        temp_student_id = mock_user_info.call_args.kwargs['student_id']
+        self.assertLessEqual(len(temp_student_id), 10)
         body = json.loads(response.content)
         self.assertIn('result', body)
         result = body['result']

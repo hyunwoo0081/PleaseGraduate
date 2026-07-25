@@ -55,4 +55,4 @@ jobs:
           ${{ secrets.DOCKER_TAG }}
           
           # 컨테이너 실행 후 데이터베이스 테이블 생성 및 엑셀 데이터 주입
-          docker-compose exec -T django python /srv/setup_database.py
+          docker-compose exec -T django python /srv/PleaseGraduate/setup_database.py

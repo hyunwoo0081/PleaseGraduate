@@ -164,7 +164,7 @@ def check_excel(request):
         )
 
     # ── 4. 임시 사용자 생성 ───────────────────────────────────────────────
-    temp_id = f'api_{uuid.uuid4().hex[:20]}'
+    temp_id = f'a{uuid.uuid4().hex[:9]}'
     now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     try:
